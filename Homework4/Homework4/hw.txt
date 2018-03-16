@@ -1,0 +1,22 @@
+2. Set<Bottle>::insert causes a compilation error because the input parameter
+for the insert function takes a certain type of argument. Our implementation of
+insert currently deals with types which we can modify outright (e.g. a string
+or an int) and in this case we are passing it a Class, which contains a string.
+We cannot modify the private string member of Bottle with insert.
+
+3b. This is because the list of paths depends on the list having some root
+path. listAll does not include a case from which to recursively built upon.
+
+4a. O(N^3) because the first loop (int k) will take N times to complete. 
+The loop outside of that (int j) ill take the first loop's time, but N times
+that. So the entire time it would take for the J loop to start and finish
+is N^2. Same idea applies to the I loop, resulting in N^3.
+
+4b. O(N^2) because the inner-most loop (int k) and outer-most loop (int i)
+are two important loops to consider. The J loop is negligible for big N.
+
+5a. The worst case time complexity would be O(N) because all cases within
+the unite function are constant-time operations.
+
+5b. The complexity is O(NlogN) because aside from the sorting algorithm,
+all other cases are simply constant-time. 

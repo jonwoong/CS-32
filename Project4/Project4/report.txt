@@ -1,0 +1,74 @@
+///// GENERAL INFORMATION /////
+
+The SymbolTable class utilizes a hash table in the form of a vector. 
+
+The table accepts objects of type itemToStore.
+
+The struct itemToStore has data members that contain the line number of the
+	declaration, the name of the object declared, the depth of its scope,
+	and a pointer to another itemToStore of the same hash value.
+	
+A declaration that does not live within braces '{' or '}' has a scope of 0,
+	while a declaration within one set of braces has a scope of 1, etc.
+	{{{ int x; }}} has a scope of 3.
+
+The SymbolTable class also keeps track of the number of total buckets, 
+current scope, number of total items, and the number of times the user has
+left or entered a scope.
+
+///// CLASSES /////
+
+I. SymbolTableImpl
+	1. SymbolTableImpl();
+		- initialize important data members (in-line);
+		- set the size of the hash table (10,000 in this case);
+	2. hashFunction(key)
+		- return a hashValue using FNV hash algorithm;
+	3. castrateHashValue(hashValue)
+		- shorten the hash returned by hashFunction to the last 4 digits;
+	4. enterScope()
+		- increment currentScope by 1;
+		- increment timesScopeEntered by 1;
+	5. exitScope()
+		- conditional checks;
+		- delete all items in hash table that lived in the most recent
+		(highest numerical value) scope;
+		- decrement currentScope by 1;
+		- increase timesScopeExited by 1;
+	6. declare(id, lineNum)
+		- capture the table index for the item as hashValue;
+		- initialize a new itemToStore object, set its pointers;
+		- if (slot is empty)
+			pointer assignment of empty slot;
+			increment numOfItems;
+		- if (slot is occupied)
+			pointer assignment of existing item to new item;
+			increment numOfItems;
+		- if (identical item exists)
+			return false;
+	7. find(id)
+		- conditional checks;
+		- if (item is found at hashValue)
+			return the lineNumber if the scope of the item >= currentScope;
+		- else 
+			continue traversing the singly-linked list in the hash;
+
+///// TIME COMPLEXITY /////
+
+In comparison to the original implementation file (which ran at about
+	6000 ms for my MacBookPro), the revised implementation runs at
+	about 200 ms. Most of the functions seem to be linear time, with the
+	time-saving aspect relying solely on the fact that the primary data
+	structure for the project is a hash table. Perhaps lookups become
+	constant time instead of linear.
+		
+///// OBSTACLES ///// 
+
+I keep getting errors for two different declarations that return the same
+hash value. Perhaps the implementation of code to deal with collisions does
+not handle the traversal of the singly-linked list properly, or something
+remains out of bounds for the iterator (making it do something undefined).
+
+My implementation handles a small amount of items fairly well, while 
+performing quite poorly for much larger amounts of data (maybe a bad 
+growth pattern?)

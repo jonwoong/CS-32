@@ -1,0 +1,321 @@
+///// GENERAL INFORMATION /////
+
+The board is arranged as a vector of ints, where theBoard[0] is south's 
+hole 1 and theBoard[2*holes()-1] is north's hole 1.
+
+The midpoint of this vector marks the point in which south has definitely
+reached his pot, and also marks where north's last hole is.
+
+So for a 6 hole game:
+		
+		North vs. South
+
+		(5) (4) (3)
+		N1   N2	 N3
+North Pot(0)			South Pot(0)
+		S1  S2	S3
+		(0) (1) (2)	
+
+Board's member function beans(Side s, int hole) returns the pot value 
+for any s, given hole = 0.
+
+Board keeps track of how many beans the player holds at any given time 
+with the data member beansInHand, which is used recursively in the
+sow function.
+
+The Game will create a copy of a Board given to it and initialize players
+for it. Once a player chooses a hole, the beans move() recursively, 
+and the end conditions are set. Based on these end conditions, we use 
+applySpecialRules() to decide whether the player did a capture or gained
+an extra turn. The game status is taken after every turn until someone wins.
+
+SmartPlayer::chooseMove() prioritizes certain game scenarios over others. 
+Gaining an extra turn is top priority, while capturing a hole is 2nd 
+priority. If the player cannot do either of these, he will ensure that 
+his endHole lands on the side opposite of his (this increases the 
+chances of filling empty holes on the opponent's side). If neither of 
+the above three cases are applicable, simply choose the first non-empty 
+hole encountered going from hole 1 -> holes().
+
+///// CLASSES /////
+
+I. Board
+	1. Board(int nHoles, int nInitialBeansPerHole)
+		-(for all the holes in the board)
+			assign the initial values;
+		-calculate midpoint;
+		-count all the beans;
+	2. holes()
+		- return nHoles;
+	3. beans(Side s, int hole)
+		- check if hole is out of bounds;
+		- check if target is 0, if so return pot
+		- (for side NORTH or SOUTH)
+			return value at hole;
+	4. beansInPlay(Side s)
+		- (for all holes)
+			add up all beans and return that;
+	5. totalBeans()
+		- sum the beansInPlay and pot values for north and south, return;
+	6. potPlusOne(Side s)
+		- add one to pot while decrementing from beansInHand;
+	7. recursiveSow(Side s, int& hole, int& holesTraveled, int& beansInHand)
+		- set base case as beansInHand = 0;
+		- (if sowing reaches end of board)
+			allow function to loop;
+		- add 1 to theBoard vector and holesTraveled;
+		- decrement from beansInHand;
+		recursiveSow(same parameters);
+	8. distanceFromHoleToPot(Side s, int hole)
+		- return how many beans one needs to reach his pot;
+	9. sow(Side s, int hole, Side& endSide, int& endHole)
+		- check if hole is invalid
+		- pick up the beans by setting beansInHand, and theBoard to 0;
+	    - calculate end condition:
+			1. player does not reach his pot
+			2. player ends in his pot
+			3. player passes his pot at least once
+		- sow the beans;
+		- set endHole and endSide based on end condition;
+	10. moveToPot(Side s, int hole, Side potOwner)
+		- check if hole is invalid		
+		- pick up beans (set beansInHand, and theBoard to 0);
+		- add that to side's pot;
+	11. setBeans(Side s, int hole, int beans)
+		- check if hole is invalid;
+		- assign theBoard[index] value for hole;
+
+II. Player, HumanPlayer, BadPlayer, SmartPlayer
+	1. Player(string name)
+		- assign name to private member;
+	2. isInteractive()
+		- return true only for humans;
+	3. HumanPlayer::chooseMove(const Board& b, Side s)
+		- check if game is not over;
+		- Prompt user to choose a hole;
+		- check if input is invalid;
+	4. BadPlayer::chooseMove(const Board& b, Side s)
+		- choose first non-empty hole encountered;
+		
+		///// THESE ARE THE LINES YOU ARE LOOKING FOR /////
+			
+	5. SmartPlayer::calculateMove(Board b, Side s)
+		- (for all holes)
+			(if beans in this hole can make end in the pot)
+				return a value that guarantees an extra turn;
+		 	(if the endHole ends with 1 bean and the opposite hole >= 1)
+		 		return a value that guarantees a capture;
+		 	(if beans in this hole is enough to reach opponent side)
+		 		return a value that guarantees ending on opposite side;
+			(if none of the above is available)
+				return first non-zero value;
+		
+	6. SmartPlayer::chooseMove(const Board& b, Side s)
+		- return calculateMove;
+	
+III. Game
+	1. Game(const Board& b, Player* south, Player* north)
+		- initialize a copy of b;
+		- initialize name and player members for north and south;
+		- initialize switches for certain board notifications;
+	2. display()
+		- cout boarders, player names, holes, pots;
+		- specialEventSwitch handles display for capture/extra turn
+	3. collectRemainingBeans()
+		- if s is out of beans, then all of opponent's beans go to 
+			opponent's pot
+	4. status(bool& over, bool& hasWinner, Side& winner) const
+		- check if game is over;
+		- (if game is over)
+			the game has a winner, set it;
+	5. applySpecialRules()
+		- check whether game is over;
+		- (if s ends in his pot)
+			set specialEventSwitch;
+			take another turn, display it on the board;
+		- (if s captures)
+			set specialEventSwitch;
+			take hole opposite of endHole, add it to pot, display it;
+	6. move()
+		- check if game is over;
+		- pick a hole based on chooseMove;
+		- sow the beans;
+		- applySpecialRules to calculate captures or extra turns;
+		- announce hole that was chosen;
+		- reset specialEventSwitch;
+	7. play()
+		- check status;
+		- (while the game is not over)
+			move();
+			user is required to press Enter to refresh display;
+	8. beans(Side s, int hole)
+		- return beans for a given side;
+
+///// OBSTACLES ///// 
+
+Because the index values of holes do not obviously correlate with the 
+user-view hole values (e.g. north's hole 1 of a 6-hole board is located
+at index theBoard[11]), it's easy to improperly translate user-view 
+values to index values and vice versa. This leaves the sow function
+susceptible to boundary-related errors where the function sows 1 too many or 1 too few
+beans.
+
+///// TEST CASES /////
+
+I. Board
+	Board b(3,0);
+    
+    /// HOLES( N>0 ) ///
+    
+    assert(b.holes() == 3); // test holes()
+    
+    /// BEANSINPLAY(0) ///
+    
+    assert(b.beansInPlay(SOUTH) == 0); // test beansInPlay()
+    assert(b.beansInPlay(NORTH) == 0);
+    
+    /// TOTALBEANS(0) ///
+    
+    assert(b.totalBeans() == 0); // test totalBeans() 0
+    
+    /// BEANS(0) ///
+
+    assert(b.beans(SOUTH,1) == 0); // test beans() SOUTH
+    assert(b.beans(SOUTH,2) == 0);
+    assert(b.beans(SOUTH,3) == 0);
+    assert(b.beans(NORTH,1) == 0); // test beans() NORTH
+    assert(b.beans(NORTH,2) == 0);
+    assert(b.beans(NORTH,3) == 0);
+    
+    /// SETBEANS( N>0 ) ///
+    
+    b.setBeans(SOUTH, 1, 1); // test setBeans() SOUTH
+    b.setBeans(SOUTH, 2, 1);
+    b.setBeans(SOUTH, 3, 1);
+    assert(b.beans(SOUTH,1) == 1);
+    assert(b.beans(SOUTH,2) == 1);
+    assert(b.beans(SOUTH,3) == 1);
+    
+    /// BEANSINPLAY( N>0 ) ///
+    
+    assert(b.beansInPlay(SOUTH) == 3);// test beansInPlay SOUTH non-0
+    
+    /// SETBEANS( N>0 ) ///
+    
+    b.setBeans(NORTH, 1, 1); // test setBeans() NORTH
+    b.setBeans(NORTH, 2, 1);
+    b.setBeans(NORTH, 3, 1);
+    assert(b.beans(NORTH,1) == 1);
+    assert(b.beans(NORTH,2) == 1);
+    assert(b.beans(NORTH,3) == 1);
+    
+    /// BEANSINPLAY( N>0 ) ///
+    
+    assert(b.beansInPlay(NORTH) == 3); // test beansInPlay NORTH non-0
+    
+    /// TOTALBEANS( N>0 ) ///
+    
+    assert(b.totalBeans() == 6); // test totalBeans() non-0
+    
+    /// RESET BOARD ///
+    
+    b.setBeans(SOUTH, 1, 0);
+    b.setBeans(SOUTH, 2, 0);
+    b.setBeans(SOUTH, 3, 0);
+    b.setBeans(NORTH, 1, 0);
+    b.setBeans(NORTH, 2, 0);
+    b.setBeans(NORTH, 3, 0);
+    
+    /// MOVETOPOT( N>0 ) ///
+    
+    b.setBeans(SOUTH, 1, 10); // test moveToPot() SOUTH
+    assert(b.moveToPot(SOUTH, 1, SOUTH) == 1 && b.beans(SOUTH,1) == 0);
+    assert(b.beansInPlay(SOUTH) == 0);
+    assert(b.totalBeans() == 10);
+    
+    b.setBeans(NORTH, 1, 10); // test moveToPot() NORTH
+    assert(b.moveToPot(NORTH, 1, NORTH) == 1 && b.beans(NORTH,1) == 0);
+    assert(b.beansInPlay(NORTH) == 0);
+    assert(b.totalBeans() == 20);
+    
+    /// SOW SOUTH ///
+    
+    Side endSide = NORTH;
+    int endHole = 0;
+    b.setBeans(SOUTH,1,12);
+    b.sow(SOUTH,1,endSide,endHole);
+    
+    // N1 N2 N3
+    // 1  2  2
+     
+    // S1 S2 S3
+    // 1  2  2
+ 
+    
+    assert(b.beansInPlay(SOUTH) == 5 && // test that all beans are accounted for
+           b.beansInPlay(NORTH) == 5);
+    assert(b.totalBeans() == 32); // test that sow() adds to pot
+    assert(endSide == NORTH); // test sow() endside
+    assert(endHole == 2); // test sow() endHole
+    
+    /// RESET BOARD ///
+    
+    b.setBeans(SOUTH, 1, 0);
+    b.setBeans(SOUTH, 2, 0);
+    b.setBeans(SOUTH, 3, 0);
+    b.setBeans(NORTH, 1, 0);
+    b.setBeans(NORTH, 2, 0);
+    b.setBeans(NORTH, 3, 0);
+    
+    /// SOW NORTH ///
+    
+    b.setBeans(NORTH,3,12);
+    b.sow(NORTH,3,endSide,endHole);
+    
+    // N1 N2 N3
+    // 2  2  1
+       
+    // S1 S2 S3
+    // 2  2  1
+ 
+    
+    assert(b.beansInPlay(NORTH) == 5 && // test that all beans are accounted for
+           b.beansInPlay(SOUTH) == 5);
+    assert(b.totalBeans() == 34); // test that sow() adds to pot
+    assert(endSide == SOUTH); // test sow() endSide
+    assert(endHole == 2); // test sow() endHole
+    
+II. Player
+	Board b(3,1);
+    
+    /// CONSTRUCTION///
+    HumanPlayer hp("Player1");
+    BadPlayer bp("Player2");
+    SmartPlayer sp("Player3");
+    
+    
+    /// NAME() ///
+    assert(hp.name() == "Player1");
+    assert(bp.name() == "Player2");
+    assert(sp.name() == "Player3");
+    
+    /// ISINTERACTIVE() ///
+    assert(hp.isInteractive());
+    assert(!bp.isInteractive());
+    assert(!sp.isInteractive());
+    
+    /// CHOOSEMOVE() ///
+    int answer1 = hp.chooseMove(b,SOUTH);
+    int answer2 = bp.chooseMove(b,SOUTH);
+    int answer3 = sp.chooseMove(b,SOUTH);
+    b.setBeans(SOUTH, 2, 0);
+    assert(answer1 == 1 || answer1 == 3);
+    assert(answer2 == 1 || answer2 == 3);
+    assert(answer3 == 1 || answer3 == 3);
+    
+III. Game
+	I just used the provided test cases. They are sufficient for basic
+	testing, though much of the testing done on my side involved actually
+	playing the game and tracking the values on screen.
+
+			
